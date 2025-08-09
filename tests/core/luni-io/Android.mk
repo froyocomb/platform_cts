@@ -28,6 +28,7 @@ LOCAL_SRC_FILES := $(call all-java-files-under,../../../../libcore/luni/src/test
 	$(call all-java-files-under,../../../../libcore/support/src/test/java/) \
 	$(call all-java-files-under,../../../../libcore/luni/src/test/java/org/apache/harmony/luni/tests/pkg1) \
 	$(call all-java-files-under,../../../../libcore/luni/src/test/java/org/apache/harmony/luni/tests/pkg2) \
+	$(call all-java-files-under,../../../../libcore/luni/src/test/java/org/apache/harmony/luni/tests/java/io) \
 	../../../../libcore/luni/src/test/java/tests/luni/AllTestsIo.java
 
 LOCAL_PACKAGE_NAME := android.core.tests.luni.io
