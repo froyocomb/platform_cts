@@ -308,46 +308,47 @@ public class CameraDeviceTest extends Camera2AndroidTestCase {
     }
 
     public void testCameraDeviceCapture() throws Exception {
-        runCaptureTest(/*burst*/false, /*repeating*/false, /*abort*/false);
+        runCaptureTest(/*burst*/false, /*repeating*/false, /*flush*/false);
     }
 
     public void testCameraDeviceCaptureBurst() throws Exception {
-        runCaptureTest(/*burst*/true, /*repeating*/false, /*abort*/false);
+        runCaptureTest(/*burst*/true, /*repeating*/false, /*flush*/false);
     }
 
     public void testCameraDeviceRepeatingRequest() throws Exception {
-        runCaptureTest(/*burst*/false, /*repeating*/true, /*abort*/false);
+        runCaptureTest(/*burst*/false, /*repeating*/true, /*flush*/false);
     }
 
     public void testCameraDeviceRepeatingBurst() throws Exception {
-        runCaptureTest(/*burst*/true, /*repeating*/true, /*abort*/false);
+        runCaptureTest(/*burst*/true, /*repeating*/true, /*flush*/false);
     }
 
     /**
-     * Test {@link android.hardware.camera2.CameraCaptureSession#abortCaptures} API.
+     * Test {@link CameraDevice#flush} API.
      *
-     * <p>Abort is the fastest way to idle the camera device for reconfiguration with
-     * {@link android.hardware.camera2.CameraCaptureSession#abortCaptures}, at the cost of
-     * discarding in-progress work. Once the abort is complete, the idle callback will be called.
+     * <p>
+     * Flush is the fastest way to idle the camera device for reconfiguration
+     * with {@link #configureOutputs}, at the cost of discarding in-progress
+     * work. Once the flush is complete, the idle callback will be called.
      * </p>
      */
-    public void testCameraDeviceAbort() throws Exception {
-        runCaptureTest(/*burst*/false, /*repeating*/true, /*abort*/true);
-        runCaptureTest(/*burst*/true, /*repeating*/true, /*abort*/true);
+    public void testCameraDeviceFlush() throws Exception {
+        runCaptureTest(/*burst*/false, /*repeating*/true, /*flush*/true);
+        runCaptureTest(/*burst*/true, /*repeating*/true, /*flush*/true);
         /**
-         * TODO: this is only basic test of abort. we probably should also test below cases:
+         * TODO: this is only basic test of flush. we probably should also test below cases:
          *
-         * 1. Performance. Make sure abort is faster than stopRepeating, we can test each one a
-         * couple of times, then compare the average. Also, for abortCaptures() alone, we should
-         * make sure it doesn't take too long time (e.g. <100ms for full devices, <500ms for limited
-         * devices), after the abort, we should be able to get all results back very quickly.  This
-         * can be done in performance test.
+         * 1. Performance. Make sure flush is faster than stopRepeating, we can test each one
+         * a couple of times, then compare the average. Also, for flush() alone, we should make
+         * sure it doesn't take too long time (e.g. <100ms for full devices, <500ms for limited
+         * devices), after the flush, we should be able to get all results back very quickly.
+         * This can be done in performance test.
          *
-         * 2. Make sure all in-flight request comes back after abort, e.g. submit a couple of
-         * long exposure single captures, then abort, then check if we can get the pending
+         * 2. Make sure all in-flight request comes back after flush, e.g. submit a couple of
+         * long exposure single captures, then flush, then check if we can get the pending
          * request back quickly.
          *
-         * 3. Also need check onCaptureSequenceCompleted for repeating burst after abortCaptures().
+         * 3. Also need check onCaptureSequenceCompleted for repeating burst after flush().
          */
     }
 
@@ -693,14 +694,14 @@ public class CameraDeviceTest extends Camera2AndroidTestCase {
     /**
      * Run capture test with different test configurations.
      *
-     * @param burst If the test uses {@link CameraCaptureSession#captureBurst} or
-     * {@link CameraCaptureSession#setRepeatingBurst} to capture the burst.
-     * @param repeating If the test uses {@link CameraCaptureSession#setRepeatingBurst} or
-     * {@link CameraCaptureSession#setRepeatingRequest} for repeating capture.
-     * @param abort If the test uses {@link CameraCaptureSession#abortCaptures} to stop the
-     * repeating capture.  It has no effect if repeating is false.
+     * @param burst If the test uses {@link CameraDevice#captureBurst} or
+     * {@link CameraDevice#setRepeatingBurst} to capture the burst.
+     * @param repeating If the test uses {@link CameraDevice#setRepeatingBurst} or
+     * {@link CameraDevice#setRepeatingRequest} for repeating capture.
+     * @param flush If the test uses {@link CameraDevice#flush} to stop the repeating capture.
+     * It has no effect if repeating is false.
      */
-    private void runCaptureTest(boolean burst, boolean repeating, boolean abort) throws Exception {
+    private void runCaptureTest(boolean burst, boolean repeating, boolean flush) throws Exception {
         for (int i = 0; i < mCameraIds.length; i++) {
             try {
                 openDevice(mCameraIds[i], mCameraMockListener);
@@ -711,12 +712,12 @@ public class CameraDeviceTest extends Camera2AndroidTestCase {
                 if (!burst) {
                     // Test: that a single capture of each template type succeeds.
                     for (int j = 0; j < sTemplates.length; j++) {
-                        captureSingleShot(mCameraIds[i], sTemplates[j], repeating, abort);
+                        captureSingleShot(mCameraIds[i], sTemplates[j], repeating, flush);
                     }
                 }
                 else {
                     // Test: burst of one shot
-                    captureBurstShot(mCameraIds[i], sTemplates, 1, repeating, abort);
+                    captureBurstShot(mCameraIds[i], sTemplates, 1, repeating, flush);
 
                     int[] templates = new int[] {
                             CameraDevice.TEMPLATE_STILL_CAPTURE,
@@ -727,11 +728,11 @@ public class CameraDeviceTest extends Camera2AndroidTestCase {
                             };
 
                     // Test: burst of 5 shots of the same template type
-                    captureBurstShot(mCameraIds[i], templates, templates.length, repeating, abort);
+                    captureBurstShot(mCameraIds[i], templates, templates.length, repeating, flush);
 
                     // Test: burst of 5 shots of different template types
                     captureBurstShot(
-                            mCameraIds[i], sTemplates, sTemplates.length, repeating, abort);
+                            mCameraIds[i], sTemplates, sTemplates.length, repeating, flush);
                 }
                 verify(mCameraMockListener, never())
                         .onError(
@@ -751,7 +752,7 @@ public class CameraDeviceTest extends Camera2AndroidTestCase {
     private void captureSingleShot(
             String id,
             int template,
-            boolean repeating, boolean abort) throws Exception {
+            boolean repeating, boolean flush) throws Exception {
 
         assertEquals("Bad initial state for preparing to capture",
                 mLatestSessionState, SESSION_READY);
@@ -774,7 +775,7 @@ public class CameraDeviceTest extends Camera2AndroidTestCase {
         verifyCaptureResults(mockCaptureListener, expectedCaptureResultCount);
 
         if (repeating) {
-            if (abort) {
+            if (flush) {
                 mSession.abortCaptures();
             } else {
                 mSession.stopRepeating();
@@ -788,7 +789,7 @@ public class CameraDeviceTest extends Camera2AndroidTestCase {
             int[] templates,
             int len,
             boolean repeating,
-            boolean abort) throws Exception {
+            boolean flush) throws Exception {
 
         assertEquals("Bad initial state for preparing to capture",
                 mLatestSessionState, SESSION_READY);
@@ -824,7 +825,7 @@ public class CameraDeviceTest extends Camera2AndroidTestCase {
         verifyCaptureResults(mockCaptureListener, expectedResultCount);
 
         if (repeating) {
-            if (abort) {
+            if (flush) {
                 mSession.abortCaptures();
             } else {
                 mSession.stopRepeating();

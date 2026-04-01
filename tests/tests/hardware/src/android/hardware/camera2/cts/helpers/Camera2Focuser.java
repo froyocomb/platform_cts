@@ -18,10 +18,9 @@ package android.hardware.camera2.cts.helpers;
 
 import android.graphics.Rect;
 import android.hardware.camera2.CameraAccessException;
-import android.hardware.camera2.CameraCaptureSession;
-import android.hardware.camera2.CameraCaptureSession.CaptureListener;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
+import android.hardware.camera2.CameraDevice.CaptureListener;
 import android.hardware.camera2.params.MeteringRectangle;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
@@ -51,7 +50,6 @@ public class Camera2Focuser implements AutoFocusStateListener {
     private final Handler mHandler;
     private final AutoFocusListener mAutoFocusListener;
     private final CameraDevice mCamera;
-    private final CameraCaptureSession mSession;
     private final Surface mRequestSurface;
     private final StaticMetadata mStaticInfo;
 
@@ -83,21 +81,16 @@ public class Camera2Focuser implements AutoFocusStateListener {
      * </p>
      *
      * @param camera The camera device associated with this focuser
-     * @param session The camera capture session associated with this focuser
      * @param requestSurface The surface to issue the capture request with
      * @param listener The auto focus listener to notify AF result
      * @param staticInfo The CameraCharacteristics of the camera device
      * @param handler The handler used to post auto focus callbacks
      * @throws CameraAccessException
      */
-    public Camera2Focuser(CameraDevice camera, CameraCaptureSession session, Surface requestSurface,
-            AutoFocusListener listener, CameraCharacteristics staticInfo, Handler handler)
-            throws CameraAccessException {
+    public Camera2Focuser(CameraDevice camera, Surface requestSurface, AutoFocusListener listener,
+            CameraCharacteristics staticInfo, Handler handler) throws CameraAccessException {
         if (camera == null) {
             throw new IllegalArgumentException("camera must not be null");
-        }
-        if (session == null) {
-            throw new IllegalArgumentException("session must not be null");
         }
         if (listener == null) {
             throw new IllegalArgumentException("listener must not be null");
@@ -113,7 +106,6 @@ public class Camera2Focuser implements AutoFocusStateListener {
         }
 
         mCamera = camera;
-        mSession = session;
         mRequestSurface = requestSurface;
         mAutoFocusListener = listener;
         mStaticInfo = new StaticMetadata(staticInfo,
@@ -216,8 +208,8 @@ public class Camera2Focuser implements AutoFocusStateListener {
         mAutoFocus.setPassiveAutoFocus(/*picture*/true, mRepeatingBuilder);
         mAutoFocus.unlockAutoFocus(mRepeatingBuilder, requestBuilder);
         CaptureListener listener = createCaptureListener();
-        mSession.setRepeatingRequest(mRepeatingBuilder.build(), listener, mHandler);
-        mSession.capture(requestBuilder.build(), listener, mHandler);
+        mCamera.setRepeatingRequest(mRepeatingBuilder.build(), listener, mHandler);
+        mCamera.capture(requestBuilder.build(), listener, mHandler);
     }
 
     /**
@@ -253,8 +245,8 @@ public class Camera2Focuser implements AutoFocusStateListener {
             } else if (mSuccess) {
                 mAutoFocus.lockAutoFocus(mRepeatingBuilder, requestBuilder);
                 CaptureListener listener = createCaptureListener();
-                mSession.setRepeatingRequest(mRepeatingBuilder.build(), listener, mHandler);
-                mSession.capture(requestBuilder.build(), listener, mHandler);
+                mCamera.setRepeatingRequest(mRepeatingBuilder.build(), listener, mHandler);
+                mCamera.capture(requestBuilder.build(), listener, mHandler);
             } else {
                 startAutoFocusFullActiveLocked();
             }
@@ -277,8 +269,8 @@ public class Camera2Focuser implements AutoFocusStateListener {
         mAutoFocus.resetState();
 
         CaptureListener listener = createCaptureListener();
-        mSession.setRepeatingRequest(mRepeatingBuilder.build(), listener, mHandler);
-        mSession.capture(requestBuilder.build(), listener, mHandler);
+        mCamera.setRepeatingRequest(mRepeatingBuilder.build(), listener, mHandler);
+        mCamera.capture(requestBuilder.build(), listener, mHandler);
     }
 
     private void dispatchAutoFocusStatusLocked(final boolean success) {
@@ -345,7 +337,7 @@ public class Camera2Focuser implements AutoFocusStateListener {
             private long mLatestFrameCount = -1;
 
             @Override
-            public void onCaptureProgressed(CameraCaptureSession session, CaptureRequest request,
+            public void onCaptureProgressed(CameraDevice camera, CaptureRequest request,
                     CaptureResult result) {
                 // In case of a partial result, send to focuser if necessary
                 // 3A fields are present
@@ -360,7 +352,7 @@ public class Camera2Focuser implements AutoFocusStateListener {
             }
 
             @Override
-            public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request,
+            public void onCaptureCompleted(CameraDevice camera, CaptureRequest request,
                     TotalCaptureResult result) {
                     dispatchToFocuser(result);
             }

@@ -373,7 +373,7 @@ public class ImageReaderTest extends Camera2AndroidTestCase {
 
     private CaptureRequest.Builder prepareCaptureRequestForSurfaces(List<Surface> surfaces)
             throws Exception {
-        createSession(surfaces);
+        configureCameraOutputs(mCamera, surfaces, mCameraListener);
 
         CaptureRequest.Builder captureBuilder =
                 mCamera.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);

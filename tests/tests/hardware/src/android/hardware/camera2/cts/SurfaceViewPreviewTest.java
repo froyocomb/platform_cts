@@ -18,9 +18,8 @@ package android.hardware.camera2.cts;
 
 import static android.hardware.camera2.cts.CameraTestUtils.*;
 
-import android.hardware.camera2.CameraCaptureSession;
-import android.hardware.camera2.CameraCaptureSession.CaptureListener;
 import android.hardware.camera2.CameraDevice;
+import android.hardware.camera2.CameraDevice.CaptureListener;
 import android.hardware.camera2.CaptureFailure;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
@@ -150,7 +149,7 @@ public class SurfaceViewPreviewTest extends Camera2SurfaceViewTestCase {
             }
 
             resultListener = new SimpleCaptureListener();
-            mSession.setRepeatingRequest(requestBuilder.build(), resultListener, mHandler);
+            mCamera.setRepeatingRequest(requestBuilder.build(), resultListener, mHandler);
 
             verifyPreviewTargetFpsRange(resultListener, NUM_FRAMES_VERIFIED, fpsRange,
                     maxPreviewSz);
@@ -207,10 +206,10 @@ public class SurfaceViewPreviewTest extends Camera2SurfaceViewTestCase {
             CaptureRequest.Builder requestBuilder =
                     mCamera.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
             CaptureListener mockCaptureListener =
-                    mock(CameraCaptureSession.CaptureListener.class);
+                    mock(CameraDevice.CaptureListener.class);
 
             startPreview(requestBuilder, sz, mockCaptureListener);
-            verifyCaptureResults(mSession, mockCaptureListener, NUM_FRAMES_VERIFIED,
+            verifyCaptureResults(mCamera, mockCaptureListener, NUM_FRAMES_VERIFIED,
                     NUM_FRAMES_VERIFIED * FRAME_TIMEOUT_MS);
             stopPreview();
         }
@@ -233,9 +232,9 @@ public class SurfaceViewPreviewTest extends Camera2SurfaceViewTestCase {
                 // Assign color pattern to SENSOR_TEST_PATTERN_MODE_DATA
                 requestBuilder.set(CaptureRequest.SENSOR_TEST_PATTERN_DATA, TEST_PATTERN_DATA);
             }
-            mockCaptureListener = mock(CaptureListener.class);
+            mockCaptureListener = mock(CameraDevice.CaptureListener.class);
             startPreview(requestBuilder, maxPreviewSize, mockCaptureListener);
-            verifyCaptureResults(mSession, mockCaptureListener, NUM_TEST_PATTERN_FRAMES_VERIFIED,
+            verifyCaptureResults(mCamera, mockCaptureListener, NUM_TEST_PATTERN_FRAMES_VERIFIED,
                     NUM_TEST_PATTERN_FRAMES_VERIFIED * FRAME_TIMEOUT_MS);
         }
 
@@ -255,8 +254,8 @@ public class SurfaceViewPreviewTest extends Camera2SurfaceViewTestCase {
     }
 
     private void verifyCaptureResults(
-            CameraCaptureSession session,
-            CaptureListener mockListener,
+            CameraDevice camera,
+            CameraDevice.CaptureListener mockListener,
             int expectResultCount,
             int timeOutMs) {
         // Should receive expected number of onCaptureStarted callbacks.
@@ -264,7 +263,7 @@ public class SurfaceViewPreviewTest extends Camera2SurfaceViewTestCase {
         verify(mockListener,
                 timeout(timeOutMs).atLeast(expectResultCount))
                         .onCaptureStarted(
-                                eq(session),
+                                eq(camera),
                                 isA(CaptureRequest.class),
                                 timestamps.capture());
 
@@ -280,14 +279,14 @@ public class SurfaceViewPreviewTest extends Camera2SurfaceViewTestCase {
         verify(mockListener,
                 timeout(timeOutMs).atLeast(expectResultCount))
                         .onCaptureCompleted(
-                                eq(session),
+                                eq(camera),
                                 isA(CaptureRequest.class),
                                 argThat(new IsCaptureResultValid()));
 
         // Should not receive any capture failed callbacks.
         verify(mockListener, never())
                         .onCaptureFailed(
-                                eq(session),
+                                eq(camera),
                                 isA(CaptureRequest.class),
                                 isA(CaptureFailure.class));
     }

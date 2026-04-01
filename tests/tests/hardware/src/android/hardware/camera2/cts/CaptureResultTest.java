@@ -118,7 +118,7 @@ public class CaptureResultTest extends Camera2AndroidTestCase {
                 // Configure output streams.
                 List<Surface> outputSurfaces = new ArrayList<Surface>(1);
                 outputSurfaces.add(mReaderSurface);
-                createSession(outputSurfaces);
+                configureCameraOutputs(mCamera, outputSurfaces, mCameraListener);;
 
                 CaptureRequest.Builder requestBuilder =
                         mCamera.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);

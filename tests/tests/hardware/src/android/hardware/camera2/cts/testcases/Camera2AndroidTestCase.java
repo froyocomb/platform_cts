@@ -21,8 +21,8 @@ import static com.android.ex.camera2.blocking.BlockingStateListener.*;
 
 import android.content.Context;
 import android.hardware.camera2.CameraCaptureSession;
-import android.hardware.camera2.CameraCaptureSession.CaptureListener;
 import android.hardware.camera2.CameraDevice;
+import android.hardware.camera2.CameraDevice.CaptureListener;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CaptureRequest;
 import android.util.Size;
@@ -39,7 +39,6 @@ import android.test.AndroidTestCase;
 import android.util.Log;
 import android.view.Surface;
 
-import com.android.ex.camera2.blocking.BlockingSessionListener;
 import com.android.ex.camera2.blocking.BlockingStateListener;
 
 import java.util.List;
@@ -56,8 +55,6 @@ public class Camera2AndroidTestCase extends AndroidTestCase {
 
     protected CameraManager mCameraManager;
     protected CameraDevice mCamera;
-    protected CameraCaptureSession mCameraSession;
-    protected BlockingSessionListener mCameraSessionListener;
     protected BlockingStateListener mCameraListener;
     protected String[] mCameraIds;
     protected ImageReader mReader;
@@ -131,9 +128,9 @@ public class Camera2AndroidTestCase extends AndroidTestCase {
         if (VERBOSE) Log.v(TAG, "Starting capture from device");
 
         if (repeating) {
-            mCameraSession.setRepeatingRequest(request, listener, handler);
+            mCamera.setRepeatingRequest(request, listener, handler);
         } else {
-            mCameraSession.capture(request, listener, handler);
+            mCamera.capture(request, listener, handler);
         }
     }
 
@@ -151,11 +148,10 @@ public class Camera2AndroidTestCase extends AndroidTestCase {
              * Flush is useful for canceling long exposure single capture, it also could help
              * to make the streaming capture stop sooner.
              */
-            mCameraSession.abortCaptures();
-            mCameraSessionListener.getStateWaiter().
-                    waitForState(BlockingSessionListener.SESSION_READY, CAMERA_IDLE_TIMEOUT_MS);
+            mCamera.flush();
+            mCameraListener.waitForState(STATE_IDLE, CAMERA_IDLE_TIMEOUT_MS);
         } else {
-            mCameraSession.close();
+            configureCameraOutputs(mCamera, /*outputSurfaces*/null, mCameraListener);
         }
     }
 
@@ -192,17 +188,6 @@ public class Camera2AndroidTestCase extends AndroidTestCase {
     }
 
     /**
-     * Create a {@link #CameraCaptureSession} using the currently open camera.
-     *
-     * @param outputSurfaces The set of output surfaces to configure for this session
-     */
-    protected void createSession(List<Surface> outputSurfaces) throws Exception {
-        mCameraSessionListener = new BlockingSessionListener();
-        mCameraSession = CameraTestUtils.configureCameraSession(mCamera, outputSurfaces,
-                mCameraSessionListener, mHandler);
-    }
-
-    /**
      * Close a {@link #CameraDevice camera device} and clear the associated StaticInfo field for a
      * given camera id. The default mCameraListener is used to wait for states.
      * <p>
@@ -235,8 +220,6 @@ public class Camera2AndroidTestCase extends AndroidTestCase {
             mCamera.close();
             listener.waitForState(STATE_CLOSED, CAMERA_CLOSE_TIMEOUT_MS);
             mCamera = null;
-            mCameraSession = null;
-            mCameraSessionListener = null;
             mStaticInfo = null;
             mOrderedPreviewSizes = null;
             mOrderedVideoSizes = null;
